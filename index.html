@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometry Dash - Unit 3 FLOSS & Welded Sounds Edition</title>
+    <style>
+        :root {
+            --bg-color: #0b0e14;
+            --primary: #00f0ff;
+            --secondary: #ff007f;
+            --accent: #7928ca;
+            --yellow: #ffe600;
+            --green: #00ff66;
+            --panel-bg: rgba(18, 22, 36, 0.92);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 850px;
+            height: 480px;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.2), 0 0 15px rgba(255, 0, 127, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* UI Overlays */
+        .hud {
+            position: absolute;
+            top: 15px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .hud-stat {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(4px);
+        }
+
+        .hud-stat span {
+            color: var(--primary);
+            font-size: 20px;
+        }
+
+        /* Progress Bar for Spelling Gate Timer */
+        .timer-container {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 10;
+        }
+
+        .timer-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.1s linear;
+        }
+
+        /* Modal Screens */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--panel-bg);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 38px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, #00f0ff, #ff007f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+
+        p.subtitle {
+            font-size: 15px;
+            color: #a0aec0;
+            margin-bottom: 25px;
+            max-width: 550px;
+            line-height: 1.5;
+        }
+
+        .badge {
+            background: rgba(121, 40, 202, 0.3);
+            border: 1px solid var(--accent);
+            color: #d8b4fe;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            font-size: 18px;
+            font-weight: 800;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.4);
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 6px 20px rgba(0, 240, 255, 0.6);
+        }
+
+        /* Spelling Gate Modal Options */
+        .gate-title {
+            font-size: 20px;
+            color: #e2e8f0;
+            margin-bottom: 8px;
+        }
+
+        .rule-indicator {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--yellow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 18px 10px;
+            font-size: 24px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 1px;
+        }
+
+        .option-btn:hover {
+            background: rgba(0, 240, 255, 0.15);
+            border-color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        /* Feedback Screen Elements */
+        .review-box {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 15px;
+            width: 100%;
+            max-width: 500px;
+            margin: 15px 0 25px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .review-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+        }
+
+        .review-item:last-child {
+            border-bottom: none;
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- HUD -->
+        <div class="hud">
+            <div class="hud-stat">SCORE: <span id="score-val">0</span></div>
+            <div class="hud-stat">STREAK: <span id="streak-val">0</span></div>
+            <div class="hud-stat">SHIELD: <span id="shield-val" style="color: var(--green);">OFF</span></div>
+        </div>
+
+        <div class="timer-container">
+            <div class="timer-bar" id="gate-timer"></div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Start Screen Overlay -->
+        <div id="start-screen" class="overlay">
+            <div class="badge">Just Words Unit 3</div>
+            <h1>FLOSS & Welded Runner</h1>
+            <p class="subtitle">Jump over obstacles and face Spelling Gates every 5 seconds! Select the correct spelling that follows the FLOSS rule or Welded Sounds rule.</p>
+            <button class="btn" onclick="startGame()">Start Game</button>
+            <div class="instructions">Press [SPACE], [UP], or [CLICK] to Jump over spikes</div>
+        </div>
+
+        <!-- Spelling Gate Modal Overlay -->
+        <div id="gate-screen" class="overlay hidden">
+            <div class="badge">Spelling Gate Portal</div>
+            <div class="gate-title">Choose the correctly spelled word:</div>
+            <div id="rule-tag" class="rule-indicator">Rule: FLOSS Rule</div>
+            
+            <div class="options-grid" id="options-container">
+                <!-- Option buttons generated dynamically -->
+            </div>
+            <p id="gate-feedback" style="height:20px; font-weight:700; font-size:16px;"></p>
+        </div>
+
+        <!-- Game Over Screen Overlay -->
+        <div id="gameover-screen" class="overlay hidden">
+            <h1 style="background: linear-gradient(45deg, #ff007f, #ff4e50); -webkit-background-clip: text;">Game Over</h1>
+            <p class="subtitle" id="gameover-reason">You hit a spike hazard!</p>
+            
+            <div class="review-box">
+                <div class="review-item">
+                    <span>Final Score:</span>
+                    <strong id="final-score" style="color:var(--primary);">0</strong>
+                </div>
+                <div class="review-item">
+                    <span>Spelling Gates Mastered:</span>
+                    <strong id="final-gates" style="color:var(--green);">0</strong>
+                </div>
+                <div class="review-item">
+                    <span>Highest Streak:</span>
+                    <strong id="final-streak" style="color:var(--yellow);">0</strong>
+                </div>
+            </div>
+
+            <button class="btn" onclick="startGame()">Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        // --- WORD DATABASE (JUST WORDS UNIT 3: FLOSS & WELDED SOUNDS) ---
+        const WORD_DATABASE = [
+            // FLOSS Rule Words (f, l, s, z doubled after short vowel)
+            { word: "floss", type: "FLOSS Rule", distractors: ["flss", "flose", "flos"] },
+            { word: "cliff", type: "FLOSS Rule", distractors: ["clff", "clif", "clef"] },
+            { word: "stuff", type: "FLOSS Rule", distractors: ["stff", "stuf", "stfe"] },
+            { word: "sniff", type: "FLOSS Rule", distractors: ["snff", "snif", "snnf"] },
+            { word: "shell", type: "FLOSS Rule", distractors: ["shll", "shel", "shle"] },
+            { word: "drill", type: "FLOSS Rule", distractors: ["drll", "dril", "drle"] },
+            { word: "smell", type: "FLOSS Rule", distractors: ["smll", "smel", "smle"] },
+            { word: "glass", type: "FLOSS Rule", distractors: ["glss", "glas", "glse"] },
+            { word: "chess", type: "FLOSS Rule", distractors: ["chss", "ches", "chse"] },
+            { word: "grass", type: "FLOSS Rule", distractors: ["grss", "gras", "grse"] },
+            { word: "buzz",  type: "FLOSS Rule", distractors: ["bzz",  "buz",  "buze"] },
+            { word: "fizz",  type: "FLOSS Rule", distractors: ["fzz",  "fiz",  "fize"] },
+
+            // Welded Sounds (-all, -am, -an)
+            { word: "ball",  type: "Welded Sound (-all)", distractors: ["bll",  "bal",  "blle"] },
+            { word: "small", type: "Welded Sound (-all)", distractors: ["smll", "smal", "smle"] },
+            { word: "ham",   type: "Welded Sound (-am)",  distractors: ["hm",   "hmm",  "hme"] },
+            { word: "clam",  type: "Welded Sound (-am)",  distractors: ["clm",  "clmm", "clme"] },
+            { word: "fan",   type: "Welded Sound (-an)",  distractors: ["fn",   "fnn",  "fne"] },
+            { word: "plan",  type: "Welded Sound (-an)",  distractors: ["pln",  "plnn", "plne"] },
+
+            // Welded Sounds (-ang, -ing, -ong, -ung)
+            { word: "fang",  type: "Welded Sound (-ang)", distractors: ["fng",  "fag",  "fnge"] },
+            { word: "ring",  type: "Welded Sound (-ing)", distractors: ["rng",  "rig",  "rnge"] },
+            { word: "song",  type: "Welded Sound (-ong)", distractors: ["sng",  "sog",  "snge"] },
+            { word: "lung",  type: "Welded Sound (-ung)", distractors: ["lng",  "lug",  "lnge"] },
+            { word: "swing", type: "Welded Sound (-ing)", distractors: ["swng", "swig", "swnge"] },
+
+            // Welded Sounds (-ank, -ink, -onk, -unk)
+            { word: "bank",  type: "Welded Sound (-ank)", distractors: ["bnk",  "bak",  "bnke"] },
+            { word: "pink",  type: "Welded Sound (-ink)", distractors: ["pnk",  "pik",  "pnke"] },
+            { word: "honk",  type: "Welded Sound (-onk)", distractors: ["hnk",  "hok",  "hnke"] },
+            { word: "junk",  type: "Welded Sound (-unk)", distractors: ["jnk",  "juk",  "jnke"] },
+            { word: "skunk", type: "Welded Sound (-unk)", distractors: ["sknk", "skuk", "sknke"] }
+        ];
+
+        // Canvas Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 850;
+        canvas.height = 480;
+
+        // Game State Variables
+        let gameState = 'START'; // START, RUNNING, GATE, GAMEOVER
+        let score = 0;
+        let streak = 0;
+        let gatesMastered = 0;
+        let hasShield = false;
+        let gameSpeed = 5.5;
+        let frameCount = 0;
+        let lastGateTime = 0;
+        const GATE_INTERVAL = 5000; // 5 seconds
+        let gateTimeRemaining = GATE_INTERVAL;
+
+        // Sound Effects Engine (Web Audio API)
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new AudioContext();
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+            if (type === 'jump') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.exponentialRampToValueAtTime(450, now + 0.15);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'wrong' || type === 'crash') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(60, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+        }
+
+        // Player (Cube) Object
+        const player = {
+            x: 120,
+            y: 350,
+            size: 36,
+            velocityY: 0,
+            gravity: 0.8,
+            jumpPower: -13.5,
+            isGrounded: false,
+            rotation: 0,
+            reset: function() {
+                this.y = 350;
+                this.velocityY = 0;
+                this.isGrounded = true;
+                this.rotation = 0;
+            },
+            jump: function() {
+                if (this.isGrounded) {
+                    this.velocityY = this.jumpPower;
+                    this.isGrounded = false;
+                    playSound('jump');
+                    createParticles(this.x + this.size/2, this.y + this.size, '#00f0ff', 10);
+                }
+            },
+            update: function() {
+                this.velocityY += this.gravity;
+                this.y += this.velocityY;
+
+                const groundY = 350;
+                if (this.y >= groundY) {
+                    this.y = groundY;
+                    this.velocityY = 0;
+                    this.isGrounded = true;
+                    // Snap rotation to nearest 90 deg when landing
+                    this.rotation = Math.round(this.rotation / (Math.PI / 2)) * (Math.PI / 2);
+                } else {
+                    this.rotation += 0.12; // Rotate while jumping
+                }
+            },
+            draw: function() {
+                ctx.save();
+                ctx.translate(this.x + this.size/2, this.y + this.size/2);
+                ctx.rotate(this.rotation);
+
+                // Shield Glow
+                if (hasShield) {
+                    ctx.shadowColor = '#00ff66';
+                    ctx.shadowBlur = 20;
+                    ctx.strokeStyle = '#00ff66';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(-this.size/2 - 6, -this.size/2 - 6, this.size + 12, this.size + 12);
+                } else {
+                    ctx.shadowColor = '#00f0ff';
+                    ctx.shadowBlur = 12;
+                }
+
+                // Cube Body
+                ctx.fillStyle = '#00f0ff';
+                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+
+                // Cube Face/Detail
+                ctx.fillStyle = '#0b0e14';
+                ctx.fillRect(-this.size/4, -this.size/4, this.size/2, this.size/2);
+
+                ctx.restore();
+            }
+        };
+
+        // Obstacles & Particles Data
+        let obstacles = [];
+        let particles = [];
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    size: Math.random() * 4 + 2,
+                    color: color,
+                    life: 1.0
+                });
+            }
+        }
+
+        function spawnObstacle() {
+            const types = ['spike', 'double_spike', 'block'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            
+            obstacles.push({
+                x: canvas.width + 50,
+                y: 386, // Ground level is 386
+                type: type,
+                passed: false
+            });
+        }
+
+        function updateObstacles() {
+            // Spawn logic
+            if (frameCount % 90 === 0 && gameState === 'RUNNING') {
+                if (Math.random() > 0.25) spawnObstacle();
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.x -= gameSpeed;
+
+                // Collision Detection with Player
+                let playerBox = { x: player.x + 4, y: player.y + 4, width: player.size - 8, height: player.size - 8 };
+
+                if (obs.type === 'spike' || obs.type === 'double_spike') {
+                    let spikeWidth = obs.type === 'double_spike' ? 60 : 30;
+                    if (
+                        playerBox.x < obs.x + spikeWidth &&
+                        playerBox.x + playerBox.width > obs.x &&
+                        playerBox.y < obs.y &&
+                        playerBox.y + playerBox.height > obs.y - 36
+                    ) {
+                        handleCrash("Collided with a spike hazard!");
+                    }
+                } else if (obs.type === 'block') {
+                    if (
+                        playerBox.x < obs.x + 40 &&
+                        playerBox.x + playerBox.width > obs.x &&
+                        playerBox.y < obs.y &&
+                        playerBox.y + playerBox.height > obs.y - 40
+                    ) {
+                        handleCrash("Collided with a solid block!");
+                    }
+                }
+
+                // Remove off-screen obstacles
+                if (obs.x < -100) {
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawObstacles() {
+            obstacles.forEach(obs => {
+                ctx.save();
+                if (obs.type === 'spike') {
+                    ctx.fillStyle = '#ff007f';
+                    ctx.shadowColor = '#ff007f';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x, obs.y);
+                    ctx.lineTo(obs.x + 15, obs.y - 36);
+                    ctx.lineTo(obs.x + 30, obs.y);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (obs.type === 'double_spike') {
+                    ctx.fillStyle = '#ff007f';
+                    ctx.shadowColor = '#ff007f';
+                    ctx.shadowBlur = 10;
+                    // Spike 1
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x, obs.y);
+                    ctx.lineTo(obs.x + 15, obs.y - 36);
+                    ctx.lineTo(obs.x + 30, obs.y);
+                    ctx.closePath();
+                    ctx.fill();
+                    // Spike 2
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x + 30, obs.y);
+                    ctx.lineTo(obs.x + 45, obs.y - 36);
+                    ctx.lineTo(obs.x + 60, obs.y);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (obs.type === 'block') {
+                    ctx.fillStyle = '#7928ca';
+                    ctx.shadowColor = '#7928ca';
+                    ctx.shadowBlur = 10;
+                    ctx.fillRect(obs.x, obs.y - 40, 40, 40);
+                    ctx.strokeStyle = '#ff007f';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(obs.x, obs.y - 40, 40, 40);
+                }
+                ctx.restore();
+            });
+        }
+
+        function handleCrash(reason) {
+            if (hasShield) {
+                hasShield = false;
+                document.getElementById('shield-val').textContent = 'OFF';
+                document.getElementById('shield-val').style.color = '#ff007f';
+                playSound('crash');
+                createParticles(player.x + 18, player.y + 18, '#00ff66', 20);
+                // Clear nearby obstacles
+                obstacles = [];
+                return;
+            }
+
+            playSound('crash');
+            createParticles(player.x + 18, player.y + 18, '#ff007f', 30);
+            gameState = 'GAMEOVER';
+            
+            document.getElementById('gameover-reason').textContent = reason;
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-gates').textContent = gatesMastered;
+            document.getElementById('final-streak').textContent = streak;
+            document.getElementById('gameover-screen').classList.remove('hidden');
+        }
+
+        // Environment Background & Ground
+        function drawEnvironment() {
+            // Parallax Grid Background
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.08)';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            const offsetX = (frameCount * (gameSpeed * 0.3)) % gridSize;
+
+            for (let x = -offsetX; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            // Floor Baseline
+            ctx.fillStyle = '#121624';
+            ctx.fillRect(0, 386, canvas.width, canvas.height - 386);
+
+            // Floor Glowing Top Line
+            ctx.shadowColor = '#00f0ff';
+            ctx.shadowBlur = 12;
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, 386);
+            ctx.lineTo(canvas.width, 386);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        // Particle System Loop
+        function updateAndDrawParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.03;
+
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+        }
+
+        // --- SPELLING GATE MECHANIC ---
+        let currentTargetWord = null;
+
+        function triggerSpellingGate() {
+            gameState = 'GATE';
+            
+            // Choose random word from Unit 3 DB
+            currentTargetWord = WORD_DATABASE[Math.floor(Math.random() * WORD_DATABASE.length)];
+            
+            document.getElementById('rule-tag').textContent = `Unit 3 Pattern: ${currentTargetWord.type}`;
+            document.getElementById('gate-feedback').textContent = '';
+
+            // Mix correct word with 2 distractors
+            let options = [currentTargetWord.word, ...currentTargetWord.distractors].sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = opt;
+                btn.onclick = () => handleGateAnswer(opt);
+                container.appendChild(btn);
+            });
+
+            document.getElementById('gate-screen').classList.remove('hidden');
+        }
+
+        function handleGateAnswer(selected) {
+            const feedbackEl = document.getElementById('gate-feedback');
+
+            if (selected === currentTargetWord.word) {
+                // Correct Answer
+                playSound('correct');
+                score += 150 + (streak * 20);
+                streak++;
+                gatesMastered++;
+                hasShield = true;
+
+                document.getElementById('score-val').textContent = score;
+                document.getElementById('streak-val').textContent = streak;
+                document.getElementById('shield-val').textContent = 'ACTIVE';
+                document.getElementById('shield-val').style.color = '#00ff66';
+
+                feedbackEl.style.color = '#00ff66';
+                feedbackEl.textContent = 'EXCELLENT! Shield Active + Points Boost!';
+
+                setTimeout(() => {
+                    document.getElementById('gate-screen').classList.add('hidden');
+                    gameState = 'RUNNING';
+                    lastGateTime = Date.now();
+                }, 700);
+
+            } else {
+                // Wrong Answer
+                playSound('wrong');
+                streak = 0;
+                document.getElementById('streak-val').textContent = '0';
+
+                feedbackEl.style.color = '#ff007f';
+                feedbackEl.textContent = `Incorrect! Correct spelling: "${currentTargetWord.word}"`;
+
+                setTimeout(() => {
+                    document.getElementById('gate-screen').classList.add('hidden');
+                    gameState = 'RUNNING';
+                    lastGateTime = Date.now();
+                }, 1200);
+            }
+        }
+
+        // Game Loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawEnvironment();
+
+            if (gameState === 'RUNNING') {
+                frameCount++;
+                score++;
+                document.getElementById('score-val').textContent = score;
+
+                // Update Timer Bar
+                let elapsed = Date.now() - lastGateTime;
+                gateTimeRemaining = Math.max(0, GATE_INTERVAL - elapsed);
+                let timerPercent = (gateTimeRemaining / GATE_INTERVAL) * 100;
+                document.getElementById('gate-timer').style.width = timerPercent + '%';
+
+                if (elapsed >= GATE_INTERVAL) {
+                    triggerSpellingGate();
+                }
+
+                player.update();
+                updateObstacles();
+            }
+
+            drawObstacles();
+            player.draw();
+            updateAndDrawParticles();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            initAudio();
+            score = 0;
+            streak = 0;
+            gatesMastered = 0;
+            hasShield = false;
+            obstacles = [];
+            particles = [];
+            frameCount = 0;
+            
+            player.reset();
+
+            document.getElementById('score-val').textContent = '0';
+            document.getElementById('streak-val').textContent = '0';
+            document.getElementById('shield-val').textContent = 'OFF';
+            document.getElementById('shield-val').style.color = '#ff007f';
+
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('gate-screen').classList.add('hidden');
+
+            gameState = 'RUNNING';
+            lastGateTime = Date.now();
+        }
+
+        // Input Controls
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                if (gameState === 'RUNNING') {
+                    player.jump();
+                }
+            }
+        });
+
+        canvas.addEventListener('mousedown', () => {
+            if (gameState === 'RUNNING') {
+                player.jump();
+            }
+        });
+
+        // Initialize Game Canvas Context
+        gameLoop();
+    </script>
+</body>
+</html>
